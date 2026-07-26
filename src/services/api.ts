@@ -1,6 +1,14 @@
 import type { AuditLog, Category, Coupon, InventoryLog, Order, Product, User } from "../types";
 
-const API_BASE = "/api/v1";
+const RAW_API_URL =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) || "";
+
+/** Single Source of Truth for API version prefix */
+export const API_BASE_URL = RAW_API_URL
+  ? RAW_API_URL.replace(/\/+$/, "").endsWith("/api/v1")
+    ? RAW_API_URL.replace(/\/+$/, "")
+    : `${RAW_API_URL.replace(/\/+$/, "")}/api/v1`
+  : "/api/v1";
 
 function getAuthToken(): string | null {
   if (typeof window !== "undefined") {
@@ -20,7 +28,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const res = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
     ...options,
     headers,
   });
@@ -182,7 +191,27 @@ export const adminApi = {
 
   // Health / Monitoring check
   checkHealth: async (): Promise<{ status: string; mongodb: string }> => {
-    const res = await fetch(`${API_BASE}/health`);
+    const res = await fetch(`${API_BASE_URL}/health`);
     return res.json();
+  },
+
+  // Reports download helper
+  downloadReport: async (endpoint: string, filename: string): Promise<void> => {
+    const token = getAuthToken();
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const res = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to download report: ${res.statusText}`);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   },
 };

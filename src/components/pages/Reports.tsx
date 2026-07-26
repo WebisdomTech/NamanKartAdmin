@@ -1,25 +1,12 @@
 import React from "react";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { adminApi } from "../../services/api";
 
 export const Reports: React.FC = () => {
   const downloadReport = (endpoint: string, filename: string) => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("nk_admin_token") : null;
-    fetch(endpoint, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((err) => alert("Failed to download report: " + err.message));
+    adminApi.downloadReport(endpoint, filename).catch((err) => {
+      alert("Failed to download report: " + err.message);
+    });
   };
 
   return (
@@ -58,14 +45,14 @@ export const Reports: React.FC = () => {
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
             <button
               className="btn btn-primary"
-              onClick={() => downloadReport("/api/v1/reports/orders/export?format=csv", "orders_report.csv")}
+              onClick={() => downloadReport("/reports/orders/export?format=csv", "orders_report.csv")}
             >
               <Download size={16} />
               <span>Export CSV</span>
             </button>
             <button
               className="btn btn-secondary"
-              onClick={() => downloadReport("/api/v1/reports/orders/export?format=json", "orders_report.json")}
+              onClick={() => downloadReport("/reports/orders/export?format=json", "orders_report.json")}
             >
               <FileText size={16} />
               <span>Export JSON</span>
@@ -99,14 +86,14 @@ export const Reports: React.FC = () => {
           <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
             <button
               className="btn btn-primary"
-              onClick={() => downloadReport("/api/v1/reports/products/export?format=csv", "products_report.csv")}
+              onClick={() => downloadReport("/reports/products/export?format=csv", "products_report.csv")}
             >
               <Download size={16} />
               <span>Export CSV</span>
             </button>
             <button
               className="btn btn-secondary"
-              onClick={() => downloadReport("/api/v1/reports/products/export?format=json", "products_report.json")}
+              onClick={() => downloadReport("/reports/products/export?format=json", "products_report.json")}
             >
               <FileText size={16} />
               <span>Export JSON</span>
