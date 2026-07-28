@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const BACKEND_URL = (process.env.NEXT_PUBLIC_API_URL || "https://namankartbackend.onrender.com").replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
@@ -14,7 +16,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://namankartbackend.onrender.com/api/:path*",
+        destination: `${BACKEND_URL}/api/:path*`,
       },
     ];
   },
