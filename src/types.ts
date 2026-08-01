@@ -27,6 +27,7 @@ export interface Product {
   basePrice: number;
   salePrice?: number;
   images: string[];
+  imageAlt?: string[];
   variants?: ProductVariant[];
   rating?: number;
   reviewCount?: number;

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Edit2, Plus, Search, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
+import { Edit2, Plus, Search, Trash2, X } from "lucide-react";
 import { adminApi } from "@/src/services/api";
 import type { Category, Product } from "@/src/types";
+import { ImageUploader } from "@/src/components/ImageUploader";
 
 export const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,6 +14,8 @@ export const Products: React.FC = () => {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [folderIdentifier, setFolderIdentifier] = useState<string>("");
+  const [newlyUploadedPublicIds, setNewlyUploadedPublicIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -22,6 +25,8 @@ export const Products: React.FC = () => {
     stock: 30,
     shortDescription: "",
     description: "",
+    images: [] as string[],
+    imageAlt: [] as string[],
     isFeatured: false,
     isBestSeller: false,
     isNewProduct: false,
@@ -49,6 +54,9 @@ export const Products: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingProduct(null);
+    const sessionUuid = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `session-${Date.now()}`;
+    setFolderIdentifier(sessionUuid);
+    setNewlyUploadedPublicIds([]);
     setFormData({
       name: "",
       slug: "",
@@ -58,6 +66,8 @@ export const Products: React.FC = () => {
       stock: 30,
       shortDescription: "",
       description: "",
+      images: [],
+      imageAlt: [],
       isFeatured: false,
       isBestSeller: false,
       isNewProduct: false,
@@ -67,6 +77,8 @@ export const Products: React.FC = () => {
 
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
+    setFolderIdentifier(product._id);
+    setNewlyUploadedPublicIds([]);
     setFormData({
       name: product.name,
       slug: product.slug,
@@ -76,6 +88,8 @@ export const Products: React.FC = () => {
       stock: product.stock,
       shortDescription: product.shortDescription || "",
       description: product.description || "",
+      images: product.images || [],
+      imageAlt: product.imageAlt || [],
       isFeatured: !!product.isFeatured,
       isBestSeller: !!product.isBestSeller,
       isNewProduct: !!product.isNewProduct,
@@ -102,9 +116,6 @@ export const Products: React.FC = () => {
         ...formData,
         category: targetCat ? targetCat._id : undefined,
         slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        images: editingProduct?.images?.length
-          ? editingProduct.images
-          : ["https://images.pexels.com/photos/9271144/pexels-photo-9271144.jpeg?auto=compress&cs=tinysrgb&w=900"],
       };
 
       if (editingProduct) {
@@ -115,7 +126,17 @@ export const Products: React.FC = () => {
       setShowModal(false);
       await loadData();
     } catch (err: any) {
-      alert(err.message || "Failed to save product.");
+      // Rollback newly uploaded public IDs if Mongo DB creation/update fails
+      if (newlyUploadedPublicIds.length > 0) {
+        for (const pubId of newlyUploadedPublicIds) {
+          try {
+            await adminApi.deleteUploadImage(pubId);
+          } catch (rErr) {
+            console.error("Rollback execution error:", rErr);
+          }
+        }
+      }
+      alert(err.message || "Failed to save product. Newly uploaded images rolled back.");
     }
   };
 
@@ -350,6 +371,16 @@ export const Products: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
                   />
                 </div>
+
+                <ImageUploader
+                  images={formData.images}
+                  imageAlt={formData.imageAlt}
+                  folderIdentifier={folderIdentifier}
+                  onChange={(newImages, newAlt, newPublicIds) => {
+                    setFormData((prev) => ({ ...prev, images: newImages, imageAlt: newAlt }));
+                    if (newPublicIds) setNewlyUploadedPublicIds(newPublicIds);
+                  }}
+                />
 
                 <div style={{ display: "flex", gap: 20, marginTop: 12 }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>

@@ -18,7 +18,7 @@ export const Reports: React.FC = () => {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
         {/* Orders Report */}
         <div className="table-card" style={{ padding: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
@@ -42,7 +42,7 @@ export const Reports: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
             <button
               className="btn btn-primary"
               onClick={() => downloadReport("/reports/orders/export?format=csv", "orders_report.csv")}
@@ -83,7 +83,7 @@ export const Reports: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
             <button
               className="btn btn-primary"
               onClick={() => downloadReport("/reports/products/export?format=csv", "products_report.csv")}

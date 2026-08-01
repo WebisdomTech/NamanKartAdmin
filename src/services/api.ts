@@ -214,4 +214,55 @@ export const adminApi = {
     a.click();
     a.remove();
   },
+
+  // Media & Uploads
+  uploadImages: async (
+    files: File[],
+    folderIdentifier?: string
+  ): Promise<
+    Array<{
+      url: string;
+      publicId: string;
+      width?: number;
+      height?: number;
+      format?: string;
+      bytes?: number;
+      createdAt?: string;
+    }>
+  > => {
+    const token = getAuthToken();
+    const formData = new FormData();
+    files.forEach((file) => formData.append("images", file));
+    if (folderIdentifier) {
+      formData.append("folderIdentifier", folderIdentifier);
+    }
+
+    const res = await fetch(`${API_BASE_URL}/uploads/images`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.message || `HTTP Error ${res.status}`);
+    }
+    return json.data !== undefined ? json.data : json;
+  },
+
+  deleteUploadImage: async (publicId: string): Promise<void> => {
+    const token = getAuthToken();
+    const res = await fetch(
+      `${API_BASE_URL}/uploads/images/${encodeURIComponent(publicId)}`,
+      {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.message || `HTTP Error ${res.status}`);
+    }
+  },
 };
