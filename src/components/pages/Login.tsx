@@ -20,6 +20,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     try {
       const data = await adminApi.login(email, password);
+      if (!["admin", "manager", "super_admin"].includes(data.user.role)) {
+        adminApi.logout();
+        setError("This account does not have access to the admin console.");
+        return;
+      }
       onLoginSuccess(data.user);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed. Check credentials.");

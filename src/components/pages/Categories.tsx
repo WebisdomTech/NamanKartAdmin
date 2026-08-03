@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FolderPlus, Plus, Trash2, X } from "lucide-react";
+import { Edit2, FolderPlus, Plus, Trash2, X } from "lucide-react";
 import { adminApi } from "@/src/services/api";
 import type { Category } from "@/src/types";
 
@@ -7,6 +7,7 @@ export const Categories: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -42,15 +43,37 @@ export const Categories: React.FC = () => {
     }
   };
 
+  const openCreateModal = () => {
+    setEditingCategory(null);
+    setFormData({ name: "", slug: "", description: "", emoji: "📿", isFeatured: true });
+    setShowModal(true);
+  };
+
+  const openEditModal = (cat: Category) => {
+    setEditingCategory(cat);
+    setFormData({
+      name: cat.name,
+      slug: cat.slug,
+      description: cat.description || "",
+      emoji: cat.emoji || "📿",
+      isFeatured: !!cat.isFeatured,
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const slug = formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      await adminApi.createCategory({ ...formData, slug });
+      if (editingCategory) {
+        await adminApi.updateCategory(editingCategory._id, { ...formData, slug });
+      } else {
+        await adminApi.createCategory({ ...formData, slug });
+      }
       setShowModal(false);
       await loadCategories();
     } catch (err: any) {
-      alert(err.message || "Failed to create category.");
+      alert(err.message || `Failed to ${editingCategory ? "update" : "create"} category.`);
     }
   };
 
@@ -63,7 +86,7 @@ export const Categories: React.FC = () => {
             Organize catalog categories in MongoDB Atlas
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button className="btn btn-primary" onClick={openCreateModal}>
           <Plus size={18} />
           <span>Add New Category</span>
         </button>
@@ -93,6 +116,13 @@ export const Categories: React.FC = () => {
                     {cat.isFeatured && <span className="badge badge-gold">Featured</span>}
                     <button
                       className="btn btn-secondary btn-icon"
+                      onClick={() => openEditModal(cat)}
+                      title="Edit category"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-icon"
                       style={{ color: "#EF4444" }}
                       onClick={() => handleDelete(cat._id, cat.name)}
                       title="Delete category"
@@ -119,7 +149,9 @@ export const Categories: React.FC = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ fontSize: "1.2rem", fontWeight: 700 }}>Create New Category</h3>
+              <h3 style={{ fontSize: "1.2rem", fontWeight: 700 }}>
+                {editingCategory ? "Edit Category" : "Create New Category"}
+              </h3>
               <button className="btn btn-secondary btn-icon" onClick={() => setShowModal(false)}>
                 <X size={18} />
               </button>
@@ -183,7 +215,7 @@ export const Categories: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Save Category to Mongo
+                  {editingCategory ? "Update Category" : "Save Category to Mongo"}
                 </button>
               </div>
             </form>

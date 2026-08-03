@@ -47,7 +47,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     async function checkSession() {
       try {
         const currentUser = await adminApi.getProfile();
-        setUser(currentUser);
+        if (!["admin", "manager", "super_admin"].includes(currentUser.role)) {
+          adminApi.logout();
+          setUser(null);
+        } else {
+          setUser(currentUser);
+        }
       } catch {
         setUser(null);
       } finally {
@@ -225,7 +230,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <a
-              href="http://localhost:8080"
+              href={process.env.NEXT_PUBLIC_STOREFRONT_URL || "http://localhost:8080"}
               target="_blank"
               rel="noreferrer"
               className="btn btn-secondary btn-sm"

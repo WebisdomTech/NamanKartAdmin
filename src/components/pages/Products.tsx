@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Edit2, Plus, Search, Trash2, X } from "lucide-react";
+import { Edit2, Plus, Search, Trash2, X, FileArchive } from "lucide-react";
 import { adminApi } from "@/src/services/api";
 import type { Category, Product } from "@/src/types";
 import { ImageUploader } from "@/src/components/ImageUploader";
+import { BulkImportWizard } from "@/src/components/BulkImportWizard";
 
 export const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,6 +14,7 @@ export const Products: React.FC = () => {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [showImportWizard, setShowImportWizard] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [folderIdentifier, setFolderIdentifier] = useState<string>("");
   const [newlyUploadedPublicIds, setNewlyUploadedPublicIds] = useState<string[]>([]);
@@ -141,7 +143,9 @@ export const Products: React.FC = () => {
   };
 
   const filtered = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.slug.includes(search.toLowerCase());
+    const matchesSearch =
+      (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.slug || "").includes(search.toLowerCase());
     const matchesCat = selectedCat === "all" || p.categorySlug === selectedCat;
     return matchesSearch && matchesCat;
   });
@@ -155,10 +159,16 @@ export const Products: React.FC = () => {
             Manage catalog items stored in MongoDB database
           </p>
         </div>
-        <button className="btn btn-primary" onClick={openCreateModal}>
-          <Plus size={18} />
-          <span>Add New Product</span>
-        </button>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button className="btn btn-secondary" onClick={() => setShowImportWizard(true)}>
+            <FileArchive size={18} />
+            <span>Bulk Import (ZIP)</span>
+          </button>
+          <button className="btn btn-primary" onClick={openCreateModal}>
+            <Plus size={18} />
+            <span>Add New Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -413,6 +423,13 @@ export const Products: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Import Wizard Modal */}
+      <BulkImportWizard
+        isOpen={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 };

@@ -125,3 +125,19 @@ export interface AuditLog {
   ipAddress?: string;
   createdAt: string;
 }
+
+export interface BulkImportStagedData {
+  importJob: {
+    importId: string;
+    summary: {
+      totalProducts: number;
+      newProducts: number;
+      updatedProducts: number;
+      matchedImages: number;
+      missingImages: number;
+      duplicateSlugCount: number;
+    };
+  };
+  stagedProducts: unknown[];
+  errorReport: Array<{ product: string; message: string }>;
+}

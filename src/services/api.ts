@@ -1,4 +1,13 @@
-import type { AuditLog, Category, Coupon, InventoryLog, Order, Product, User } from "../types";
+import type {
+  AuditLog,
+  BulkImportStagedData,
+  Category,
+  Coupon,
+  InventoryLog,
+  Order,
+  Product,
+  User,
+} from "../types";
 
 const RAW_API_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) || "";
@@ -15,6 +24,50 @@ function getAuthToken(): string | null {
     return localStorage.getItem("nk_admin_token");
   }
   return null;
+}
+
+async function parseResponse<T>(res: Response): Promise<T> {
+  const contentType = res.headers.get("content-type") || "";
+  let json: any = null;
+
+  if (contentType.includes("application/json")) {
+    try {
+      json = await res.json();
+    } catch {
+      // Ignore JSON parse error if response body is malformed or empty
+    }
+  }
+
+  if (!res.ok) {
+    let errorMsg =
+      json?.message ||
+      (json?.errors && Array.isArray(json.errors)
+        ? json.errors.map((e: any) => e.message || e).join(", ")
+        : null);
+
+    if (!errorMsg) {
+      const rawText = await res.text().catch(() => "");
+      if (rawText && !rawText.trim().startsWith("<")) {
+        errorMsg = rawText.trim();
+      } else {
+        errorMsg = `Server error (${res.status} ${res.statusText || "Error"}). API: ${res.url}`;
+      }
+    }
+
+    throw new Error(errorMsg);
+  }
+
+  if (json !== null) {
+    return json.data !== undefined ? json.data : json;
+  }
+
+  const text = await res.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.data !== undefined ? parsed.data : parsed;
+  } catch {
+    return text as unknown as T;
+  }
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -34,13 +87,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  const json = await res.json();
-
-  if (!res.ok) {
-    throw new Error(json.message || `HTTP Error ${res.status}`);
-  }
-
-  return json.data !== undefined ? json.data : json;
+  return parseResponse<T>(res);
 }
 
 export const adminApi = {
@@ -123,6 +170,13 @@ export const adminApi = {
     });
   },
 
+  updateCategory: async (id: string, payload: Partial<Category>): Promise<Category> => {
+    return request<Category>(`/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
   deleteCategory: async (id: string): Promise<void> => {
     await request<void>(`/categories/${id}`, {
       method: "DELETE",
@@ -192,7 +246,7 @@ export const adminApi = {
   // Health / Monitoring check
   checkHealth: async (): Promise<{ status: string; mongodb: string }> => {
     const res = await fetch(`${API_BASE_URL}/health`);
-    return res.json();
+    return parseResponse(res);
   },
 
   // Reports download helper
@@ -243,11 +297,7 @@ export const adminApi = {
       body: formData,
     });
 
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || `HTTP Error ${res.status}`);
-    }
-    return json.data !== undefined ? json.data : json;
+    return parseResponse(res);
   },
 
   deleteUploadImage: async (publicId: string): Promise<void> => {
@@ -260,9 +310,54 @@ export const adminApi = {
       }
     );
 
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || `HTTP Error ${res.status}`);
-    }
+    await parseResponse(res);
+  },
+
+  // Bulk Catalog Import API
+  downloadImportTemplate: async (): Promise<void> => {
+    return adminApi.downloadReport("/imports/template", "namankart_products_template.json");
+  },
+
+  uploadBulkImportZip: async (file: File): Promise<BulkImportStagedData> => {
+    const token = getAuthToken();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${API_BASE_URL}/imports`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    return parseResponse<BulkImportStagedData>(res);
+  },
+
+  getImportReport: async (importId: string) => {
+    return request(`/imports/${importId}/report`);
+  },
+
+  getImportDiff: async (importId: string) => {
+    return request(`/imports/${importId}/diff`);
+  },
+
+  getImportStatus: async (importId: string) => {
+    return request(`/imports/${importId}/status`);
+  },
+
+  commitBulkImport: async (importId: string, options?: any) => {
+    return request(`/imports/${importId}/commit`, {
+      method: "POST",
+      body: JSON.stringify(options || {}),
+    });
+  },
+
+  rollbackBulkImport: async (importId: string) => {
+    return request(`/imports/${importId}/rollback`, {
+      method: "POST",
+    });
+  },
+
+  getImportHistory: async () => {
+    return request<any[]>("/imports");
   },
 };
