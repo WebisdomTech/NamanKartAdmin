@@ -5,6 +5,16 @@ export interface Category {
   description?: string;
   emoji?: string;
   isFeatured?: boolean;
+  h1?: string;
+  heroSubtitle?: string;
+  aboutSection?: string;
+  whyChooseNamankart?: string[];
+  buyingGuide?: Array<{ title: string; text: string }>;
+  careInstructions?: string[];
+  faqs?: Array<{ question: string; answer: string }>;
+  metaTitle?: string;
+  metaDescription?: string;
+  focusKeyword?: string;
 }
 
 export interface ProductVariant {
@@ -22,20 +32,61 @@ export interface Product {
   slug: string;
   category: string | Category;
   categorySlug: string;
-  shortDescription?: string;
-  description?: string;
+  brand?: string;
+  sku?: string;
+  hsnCode?: string;
+  gstRate?: number;
   basePrice: number;
   salePrice?: number;
+  costPrice?: number;
+  stock: number;
+  lowStockThreshold?: number;
+  weight?: string;
+  dimensions?: string;
   images: string[];
   imageAlt?: string[];
-  variants?: ProductVariant[];
+  featuredImage?: string;
+  thumbnail?: string;
+  videoUrl?: string;
+  shortDescription?: string;
+  description?: string;
+  overview?: string;
+  benefits?: string;
+  howToUse?: string;
+  careInstructions?: string;
+  spiritualSignificance?: string;
+  packageContents?: string;
+  specificationsTable?: Array<{ key: string; value: string }>;
+  specifications?: Record<string, any>;
+  metaTitle?: string;
+  metaDescription?: string;
+  focusKeyword?: string;
+  canonical?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  relatedProducts?: string[];
+  frequentlyBoughtTogether?: string[];
+  crossSellProducts?: string[];
+  upsellProducts?: string[];
+  shippingDescription?: string;
+  shippingPoints?: string[];
+  deliveryTimeline?: string;
+  freeShipping?: boolean;
+  reviewHeading?: string;
+  reviewDescription?: string;
+  reviewHighlights?: string[];
   rating?: number;
   reviewCount?: number;
-  stock: number;
+  variants?: ProductVariant[];
   tags?: string[];
   isFeatured?: boolean;
   isBestSeller?: boolean;
   isNewProduct?: boolean;
+  isTrending?: boolean;
+  isFestivalSpecial?: boolean;
+  isHandcrafted?: boolean;
+  isExclusive?: boolean;
+  isActive?: boolean;
 }
 
 export interface OrderItem {

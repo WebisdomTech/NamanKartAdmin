@@ -8,12 +8,19 @@ export const Categories: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [activeTab, setActiveTab] = useState<"basic" | "hero" | "about" | "seo">("basic");
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
     description: "",
     emoji: "📿",
     isFeatured: true,
+    h1: "",
+    heroSubtitle: "",
+    aboutSection: "",
+    metaTitle: "",
+    metaDescription: "",
+    focusKeyword: "",
   });
 
   const loadCategories = async () => {
@@ -45,7 +52,20 @@ export const Categories: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingCategory(null);
-    setFormData({ name: "", slug: "", description: "", emoji: "📿", isFeatured: true });
+    setFormData({
+      name: "",
+      slug: "",
+      description: "",
+      emoji: "📿",
+      isFeatured: true,
+      h1: "",
+      heroSubtitle: "",
+      aboutSection: "",
+      metaTitle: "",
+      metaDescription: "",
+      focusKeyword: "",
+    });
+    setActiveTab("basic");
     setShowModal(true);
   };
 
@@ -57,7 +77,14 @@ export const Categories: React.FC = () => {
       description: cat.description || "",
       emoji: cat.emoji || "📿",
       isFeatured: !!cat.isFeatured,
+      h1: cat.h1 || "",
+      heroSubtitle: cat.heroSubtitle || "",
+      aboutSection: cat.aboutSection || "",
+      metaTitle: cat.metaTitle || "",
+      metaDescription: cat.metaDescription || "",
+      focusKeyword: cat.focusKeyword || "",
     });
+    setActiveTab("basic");
     setShowModal(true);
   };
 
@@ -81,9 +108,9 @@ export const Categories: React.FC = () => {
     <div>
       <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: 800 }}>Category Taxonomy</h1>
+          <h1 style={{ fontSize: "1.8rem", fontWeight: 800 }}>Category CMS & Landing Page Editor</h1>
           <p style={{ color: "#94A3B8", fontSize: "0.9rem" }}>
-            Organize catalog categories in MongoDB Atlas
+            Manage category taxonomy, hero sections, about text, buying guides & SEO
           </p>
         </div>
         <button className="btn btn-primary" onClick={openCreateModal}>
@@ -106,7 +133,7 @@ export const Categories: React.FC = () => {
                 padding: 20,
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between"
+                justifyContent: "space-between",
               }}
             >
               <div>
@@ -147,75 +174,177 @@ export const Categories: React.FC = () => {
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontSize: "1.2rem", fontWeight: 700 }}>
-                {editingCategory ? "Edit Category" : "Create New Category"}
+                {editingCategory ? `Edit Category: ${editingCategory.name}` : "Create Category Landing Page"}
               </h3>
               <button className="btn btn-secondary btn-icon" onClick={() => setShowModal(false)}>
                 <X size={18} />
               </button>
             </div>
+
+            {/* Modal Tabs */}
+            <div style={{ display: "flex", gap: 8, padding: "0 24px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-elevated)" }}>
+              {(["basic", "hero", "about", "seo"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: "10px 16px",
+                    background: "none",
+                    border: "none",
+                    borderBottom: activeTab === tab ? "2px solid #C8102E" : "2px solid transparent",
+                    color: activeTab === tab ? "#C8102E" : "#94A3B8",
+                    fontWeight: activeTab === tab ? 700 : 500,
+                    cursor: "pointer",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {tab === "basic" ? "1. Basic Info" : tab === "hero" ? "2. Hero Section" : tab === "about" ? "3. About 250w" : "4. SEO Meta"}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="input-group">
-                  <label>Category Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                  <div className="input-group">
-                    <label>Slug</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      placeholder="auto-generated"
-                    />
+              <div className="modal-body" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                {activeTab === "basic" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div className="input-group">
+                      <label>Category Name</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div className="input-group">
+                        <label>Slug</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formData.slug}
+                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>Emoji Icon</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formData.emoji}
+                          onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="input-group">
+                      <label>Short Category Overview</label>
+                      <textarea
+                        className="form-control"
+                        rows={2}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      />
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.isFeatured}
+                        onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                      />
+                      <span>Feature on Store Homepage</span>
+                    </label>
                   </div>
-                  <div className="input-group">
-                    <label>Emoji Icon</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={formData.emoji}
-                      onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
-                    />
+                )}
+
+                {activeTab === "hero" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div className="input-group">
+                      <label>H1 On-Page Banner Heading</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.h1}
+                        placeholder={formData.name || "e.g. Shop Authentic Tulsi Malas"}
+                        onChange={(e) => setFormData({ ...formData, h1: e.target.value })}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label>Hero Subtitle & Introduction Copy</label>
+                      <textarea
+                        className="form-control"
+                        rows={3}
+                        value={formData.heroSubtitle}
+                        placeholder="Hero paragraph copy for Category Landing Page..."
+                        onChange={(e) => setFormData({ ...formData, heroSubtitle: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="input-group">
-                  <label>Description</label>
-                  <textarea
-                    className="form-control"
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
+                {activeTab === "about" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div className="input-group">
+                      <label>About Category (200-250 words Spiritual & Material History)</label>
+                      <textarea
+                        className="form-control"
+                        rows={6}
+                        value={formData.aboutSection}
+                        placeholder="Detailed background section about sacred wood sourcing, history, and spiritual benefits..."
+                        onChange={(e) => setFormData({ ...formData, aboutSection: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
 
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginTop: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={formData.isFeatured}
-                    onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                  />
-                  <span>Feature on Store Homepage</span>
-                </label>
+                {activeTab === "seo" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div className="input-group">
+                      <label>SEO Meta Title ({formData.metaTitle.length}/60 chars)</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        maxLength={70}
+                        value={formData.metaTitle}
+                        placeholder="e.g. Authentic Tulsi Malas & Kanthi Online | NamanKart"
+                        onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label>SEO Meta Description ({formData.metaDescription.length}/160 chars)</label>
+                      <textarea
+                        className="form-control"
+                        rows={3}
+                        maxLength={180}
+                        value={formData.metaDescription}
+                        placeholder="Shop temple-sourced tulsi malas, kanthi malas, and japa malas online..."
+                        onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label>Focus Keyword</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={formData.focusKeyword}
+                        placeholder="e.g. tulsi mala online"
+                        onChange={(e) => setFormData({ ...formData, focusKeyword: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
+
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingCategory ? "Update Category" : "Save Category to Mongo"}
+                  {editingCategory ? "Update Category Landing Page" : "Save Category Landing Page"}
                 </button>
               </div>
             </form>
@@ -225,4 +354,3 @@ export const Categories: React.FC = () => {
     </div>
   );
 };
-
