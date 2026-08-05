@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Edit2, FolderPlus, Plus, Trash2, X } from "lucide-react";
 import { adminApi } from "@/src/services/api";
 import type { Category } from "@/src/types";
+import { ValidatedInput } from "@/src/components/ui/ValidatedInput";
+import { ValidationSummary } from "@/src/components/ui/ValidationSummary";
+import { useAsyncUniqueCheck } from "@/src/hooks/useAsyncUniqueCheck";
+import { runValidationPipeline, categoryPublishProfile } from "@shared/validation";
 
 export const Categories: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -9,6 +13,12 @@ export const Categories: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [activeTab, setActiveTab] = useState<"basic" | "hero" | "about" | "seo">("basic");
+
+  // Validation State
+  const [valErrors, setValErrors] = useState<any[]>([]);
+  const [valWarnings, setValWarnings] = useState<any[]>([]);
+  const [valInfo, setValInfo] = useState<any[]>([]);
+
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -22,6 +32,9 @@ export const Categories: React.FC = () => {
     metaDescription: "",
     focusKeyword: "",
   });
+
+  // Async Unique Check
+  const slugCheck = useAsyncUniqueCheck("/categories", "slug", formData?.slug || "", editingCategory?._id);
 
   const loadCategories = async () => {
     setLoading(true);
@@ -52,6 +65,9 @@ export const Categories: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingCategory(null);
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
     setFormData({
       name: "",
       slug: "",
@@ -71,6 +87,9 @@ export const Categories: React.FC = () => {
 
   const openEditModal = (cat: Category) => {
     setEditingCategory(cat);
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
     setFormData({
       name: cat.name,
       slug: cat.slug,
@@ -90,8 +109,20 @@ export const Categories: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
+
     try {
       const slug = formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const pipelineRes = await runValidationPipeline({ ...formData, slug }, categoryPublishProfile);
+
+      setValErrors(pipelineRes.errors);
+      setValWarnings(pipelineRes.warnings);
+      setValInfo(pipelineRes.info);
+
+      if (!pipelineRes.valid) return;
+
       if (editingCategory) {
         await adminApi.updateCategory(editingCategory._id, { ...formData, slug });
       } else {
@@ -100,7 +131,11 @@ export const Categories: React.FC = () => {
       setShowModal(false);
       await loadCategories();
     } catch (err: any) {
-      alert(err.message || `Failed to ${editingCategory ? "update" : "create"} category.`);
+      if (err.errors && Array.isArray(err.errors)) {
+        setValErrors(err.errors);
+      } else {
+        alert(err.message || `Failed to ${editingCategory ? "update" : "create"} category.`);
+      }
     }
   };
 
@@ -209,37 +244,41 @@ export const Categories: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ maxHeight: "60vh", overflowY: "auto" }}>
+                <ValidationSummary errors={valErrors} warnings={valWarnings} info={valInfo} />
                 {activeTab === "basic" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div className="input-group">
-                      <label>Category Name</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
+                    <ValidatedInput
+                      id="cat-name"
+                      label="Category Name"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Tulsi Malas & Necklaces"
+                      error={valErrors.find((e) => e.field === "name")?.message}
+                      warning={valWarnings.find((w) => w.field === "name")?.message}
+                    />
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                      <div className="input-group">
-                        <label>Slug</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formData.slug}
-                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                        />
-                      </div>
-                      <div className="input-group">
-                        <label>Emoji Icon</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formData.emoji}
-                          onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
-                        />
-                      </div>
+                      <ValidatedInput
+                        id="cat-slug"
+                        label="Category Slug"
+                        required
+                        value={formData.slug}
+                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                        placeholder="tulsi-malas"
+                        checking={slugCheck.checking}
+                        asyncAvailable={slugCheck.available}
+                        suggestions={slugCheck.suggestions}
+                        onSelectSuggestion={(sug) => setFormData({ ...formData, slug: sug })}
+                        error={valErrors.find((e) => e.field === "slug")?.message}
+                        warning={valWarnings.find((w) => w.field === "slug")?.message}
+                      />
+                      <ValidatedInput
+                        id="cat-emoji"
+                        label="Emoji Icon"
+                        value={formData.emoji}
+                        onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                        placeholder="📿"
+                      />
                     </div>
                     <div className="input-group">
                       <label>Short Category Overview</label>

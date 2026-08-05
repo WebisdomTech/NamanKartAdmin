@@ -2,11 +2,21 @@ import React, { useEffect, useState } from "react";
 import { Plus, Tag, Trash2, X } from "lucide-react";
 import { adminApi } from "@/src/services/api";
 import type { Coupon } from "@/src/types";
+import { ValidatedInput } from "@/src/components/ui/ValidatedInput";
+import { ValidationSummary } from "@/src/components/ui/ValidationSummary";
+import { useAsyncUniqueCheck } from "@/src/hooks/useAsyncUniqueCheck";
+import { runValidationPipeline, couponProfile } from "@shared/validation";
 
 export const Coupons: React.FC = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+
+  // Validation State
+  const [valErrors, setValErrors] = useState<any[]>([]);
+  const [valWarnings, setValWarnings] = useState<any[]>([]);
+  const [valInfo, setValInfo] = useState<any[]>([]);
+
   const [formData, setFormData] = useState({
     code: "BHAKTI10",
     description: "10% discount on devotional malas",
@@ -18,6 +28,9 @@ export const Coupons: React.FC = () => {
     usageLimit: 100,
     isActive: true,
   });
+
+  // Async Unique Check
+  const codeCheck = useAsyncUniqueCheck("/coupons", "code", formData.code);
 
   const loadCoupons = async () => {
     setLoading(true);
@@ -48,12 +61,27 @@ export const Coupons: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
+
     try {
+      const pipelineRes = await runValidationPipeline(formData, couponProfile);
+      setValErrors(pipelineRes.errors);
+      setValWarnings(pipelineRes.warnings);
+      setValInfo(pipelineRes.info);
+
+      if (!pipelineRes.valid) return;
+
       await adminApi.createCoupon(formData);
       setShowModal(false);
       await loadCoupons();
     } catch (err: any) {
-      alert(err.message || "Failed to create coupon.");
+      if (err.errors && Array.isArray(err.errors)) {
+        setValErrors(err.errors);
+      } else {
+        alert(err.message || "Failed to create coupon.");
+      }
     }
   };
 
@@ -155,41 +183,43 @@ export const Coupons: React.FC = () => {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="input-group">
-                  <label>Coupon Code</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    placeholder="e.g. FESTIVE20"
-                    required
-                  />
-                </div>
+                <ValidationSummary errors={valErrors} warnings={valWarnings} info={valInfo} />
+                <ValidatedInput
+                  id="coupon-code"
+                  label="Coupon Code"
+                  required
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  placeholder="e.g. FESTIVE20"
+                  checking={codeCheck.checking}
+                  asyncAvailable={codeCheck.available}
+                  error={valErrors.find((e) => e.field === "code")?.message}
+                  warning={valWarnings.find((w) => w.field === "code")?.message}
+                />
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
                   <div className="input-group">
-                    <label>Discount Type</label>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#E2E8F0" }}>Discount Type</label>
                     <select
                       className="form-control"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                      style={{ background: "#0F172A", border: "1px solid #334155", borderRadius: "6px", color: "#F8FAFC", padding: "8px 12px", fontSize: "0.88rem" }}
                     >
                       <option value="percentage">Percentage (%)</option>
                       <option value="flat">Flat Amount (₹)</option>
                     </select>
                   </div>
 
-                  <div className="input-group">
-                    <label>Discount Value</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={formData.value}
-                      onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
-                      required
-                    />
-                  </div>
+                  <ValidatedInput
+                    id="coupon-value"
+                    label="Discount Value"
+                    required
+                    type="number"
+                    value={formData.value}
+                    onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+                    error={valErrors.find((e) => e.field === "value")?.message}
+                  />
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

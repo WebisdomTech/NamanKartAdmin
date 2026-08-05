@@ -4,6 +4,11 @@ import { adminApi } from "@/src/services/api";
 import type { Category, Product } from "@/src/types";
 import { ImageUploader } from "@/src/components/ImageUploader";
 import { BulkImportWizard } from "@/src/components/BulkImportWizard";
+import { ValidatedInput } from "@/src/components/ui/ValidatedInput";
+import { ValidationSummary } from "@/src/components/ui/ValidationSummary";
+import { SeoHealthWidget } from "@/src/components/ui/SeoHealthWidget";
+import { useAsyncUniqueCheck } from "@/src/hooks/useAsyncUniqueCheck";
+import { runValidationPipeline, productDraftProfile, productPublishProfile } from "@shared/validation";
 
 type ModalTab =
   | "basic"
@@ -30,6 +35,11 @@ export const Products: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [folderIdentifier, setFolderIdentifier] = useState<string>("");
   const [newlyUploadedPublicIds, setNewlyUploadedPublicIds] = useState<string[]>([]);
+
+  // Validation State
+  const [valErrors, setValErrors] = useState<any[]>([]);
+  const [valWarnings, setValWarnings] = useState<any[]>([]);
+  const [valInfo, setValInfo] = useState<any[]>([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -95,6 +105,10 @@ export const Products: React.FC = () => {
     isActive: true,
   });
 
+  // Async Unique Checks
+  const slugCheck = useAsyncUniqueCheck("/products", "slug", formData.slug, editingProduct?._id);
+  const skuCheck = useAsyncUniqueCheck("/products", "sku", formData.sku, editingProduct?._id);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -117,6 +131,9 @@ export const Products: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingProduct(null);
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
     setActiveTab("basic");
     const sessionUuid =
       typeof crypto !== "undefined" && crypto.randomUUID
@@ -194,6 +211,9 @@ export const Products: React.FC = () => {
 
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
     setActiveTab("basic");
     setFolderIdentifier(product._id);
     setNewlyUploadedPublicIds([]);
@@ -305,6 +325,10 @@ export const Products: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValErrors([]);
+    setValWarnings([]);
+    setValInfo([]);
+
     try {
       const targetCat = categories.find((c) => c.slug === formData.categorySlug);
 
@@ -319,6 +343,23 @@ export const Products: React.FC = () => {
           .split("\n")
           .map((s) => s.trim())
           .filter(Boolean);
+
+      const profile = formData.isActive ? productPublishProfile : productDraftProfile;
+      const pipelineRes = await runValidationPipeline(
+        {
+          ...formData,
+          category: targetCat?._id,
+        },
+        profile
+      );
+
+      setValErrors(pipelineRes.errors);
+      setValWarnings(pipelineRes.warnings);
+      setValInfo(pipelineRes.info);
+
+      if (!pipelineRes.valid) {
+        return; // Block save on validation error
+      }
 
       const payload: Partial<Product> = {
         name: formData.name,
@@ -401,7 +442,12 @@ export const Products: React.FC = () => {
           }
         }
       }
-      alert(err.message || "Failed to save product to MongoDB.");
+
+      if (err.errors && Array.isArray(err.errors)) {
+        setValErrors(err.errors);
+      } else {
+        alert(err.message || "Failed to save product to MongoDB.");
+      }
     }
   };
 
@@ -606,37 +652,57 @@ export const Products: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="modal-body" style={{ maxHeight: "65vh", overflowY: "auto", padding: "20px" }}>
+                <ValidationSummary
+                  errors={valErrors}
+                  warnings={valWarnings}
+                  info={valInfo}
+                />
+
                 {/* 1. BASIC INFORMATION */}
                 {activeTab === "basic" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div className="input-group">
-                      <label>Product Name *</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
+                    <ValidatedInput
+                      id="name"
+                      label="Product Name"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g., Sacred Tulsi Kanthi Mala 108 Beads"
+                      helperText="Enter full product display title"
+                      error={valErrors.find((e) => e.field === "name")?.message}
+                      warning={valWarnings.find((w) => w.field === "name")?.message}
+                    />
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <ValidatedInput
+                        id="slug"
+                        label="Slug"
+                        required={formData.isActive}
+                        value={formData.slug}
+                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                        placeholder="auto-generated-if-empty"
+                        helperText="URL-friendly identifier"
+                        checking={slugCheck.checking}
+                        asyncAvailable={slugCheck.available}
+                        suggestions={slugCheck.suggestions}
+                        onSelectSuggestion={(sug) => setFormData({ ...formData, slug: sug })}
+                        error={valErrors.find((e) => e.field === "slug")?.message}
+                        warning={valWarnings.find((w) => w.field === "slug")?.message}
+                      />
                       <div className="input-group">
-                        <label>Slug</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={formData.slug}
-                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                          placeholder="auto-generated-if-empty"
-                        />
-                      </div>
-                      <div className="input-group">
-                        <label>Category *</label>
+                        <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "#E2E8F0" }}>Category *</label>
                         <select
                           className="form-control"
                           value={formData.categorySlug}
                           onChange={(e) => setFormData({ ...formData, categorySlug: e.target.value })}
+                          style={{
+                            background: "#0F172A",
+                            border: "1px solid #334155",
+                            borderRadius: "6px",
+                            color: "#F8FAFC",
+                            padding: "8px 12px",
+                            fontSize: "0.88rem",
+                          }}
                         >
                           {categories.map((cat) => (
                             <option key={cat._id} value={cat.slug}>
