@@ -5,7 +5,7 @@ import type { Category } from "@/src/types";
 import { ValidatedInput } from "@/src/components/ui/ValidatedInput";
 import { ValidationSummary } from "@/src/components/ui/ValidationSummary";
 import { useAsyncUniqueCheck } from "@/src/hooks/useAsyncUniqueCheck";
-import { runValidationPipeline, categoryPublishProfile } from "@shared/validation";
+import { runValidationPipeline, categoryPublishProfile } from "@/src/shared/validation";
 
 export const Categories: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);

@@ -8,7 +8,7 @@ import { ValidatedInput } from "@/src/components/ui/ValidatedInput";
 import { ValidationSummary } from "@/src/components/ui/ValidationSummary";
 import { SeoHealthWidget } from "@/src/components/ui/SeoHealthWidget";
 import { useAsyncUniqueCheck } from "@/src/hooks/useAsyncUniqueCheck";
-import { runValidationPipeline, productDraftProfile, productPublishProfile } from "@shared/validation";
+import { runValidationPipeline, productDraftProfile, productPublishProfile } from "@/src/shared/validation";
 
 type ModalTab =
   | "basic"

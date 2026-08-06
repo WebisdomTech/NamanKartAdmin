@@ -5,7 +5,7 @@ import type { Coupon } from "@/src/types";
 import { ValidatedInput } from "@/src/components/ui/ValidatedInput";
 import { ValidationSummary } from "@/src/components/ui/ValidationSummary";
 import { useAsyncUniqueCheck } from "@/src/hooks/useAsyncUniqueCheck";
-import { runValidationPipeline, couponProfile } from "@shared/validation";
+import { runValidationPipeline, couponProfile } from "@/src/shared/validation";
 
 export const Coupons: React.FC = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { runValidationPipeline } from "@shared/validation";
+import { runValidationPipeline } from "@/src/shared/validation";
 
 export function useValidationPipeline(profile: any) {
   const [validationResult, setValidationResult] = useState<{
